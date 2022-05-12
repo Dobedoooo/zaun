@@ -34,7 +34,7 @@ const unique = array => {
     return Array.from(new Set(array))
 }
 
-const readDirRecursive  = path => {
+const readDirRecursive = path => {
     var obj = {}
     fs.readdirSync(path).forEach(item => {
         const stat = fs.lstatSync(`${path}/${item}`)

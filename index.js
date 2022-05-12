@@ -1,5 +1,6 @@
 import express from "express"
 import jwt from 'jsonwebtoken'
+import { Blob } from 'node:buffer'
 
 import { 
     __dirname, 
@@ -31,7 +32,7 @@ app.use('/static', express.static(`${__dirname}/public`))
 
 // unless('/login')
 app.use((req, res, next) => {
-    // return next()
+    return next()
     if(req.path === '/login') return next()
     if(req.method === 'OPTIONS') return next()
 
@@ -41,7 +42,7 @@ app.use((req, res, next) => {
     } else {
         res.send({
             ok: false,
-            msg: 'jwt校验失败',
+            msg: 'jwt invalid',
             data: ''
         })
     }
@@ -60,7 +61,7 @@ app.get('/login', (req, res) => {
     } else {
         res.send({
             ok: false,
-            msg: '你是做什么的？',
+            msg: 'unauthorized person.',
             data: ''
         })
     }
@@ -80,14 +81,14 @@ app.get('/refresh', async(req, res) => {
     let response = {}
     const flag = existSync(jsonPath)
     if(flag) {
-        response.msg = 'Already the latest version'
+        response.msg = 'Already the latest version.'
         response.ok = false
     } else {
         try {
             mkdirSync(jsonPath)
             mkdirSync(imgPath)
             const results = await getJsons(versionArray[0])
-            results.forEach(async(result) => {
+            for(let result of results) {
                 if(result.status === 'fulfilled') {
                     let data = result.value
                     let spriteArray = []
@@ -97,14 +98,14 @@ app.get('/refresh', async(req, res) => {
                     data.requiredSprite = unique(spriteArray)
                     for(let item of data.requiredSprite) {
                         const buffer = await getSprite(versionArray[0], item)
-                        process.stdout.write(`writing ${item}\n`)
                         writeFileSync(`${imgPath}/${item}`, buffer)
+                        // process.stdout.write(`write ${item}\n`)
                     }
-                    process.stdout.write(`writing ${data.type}.json\n`)
                     writeFileSync(`${jsonPath}/${data.type}.json`, JSON.stringify(data))
+                    // process.stdout.write(`write ${data.type}.json\n`)
                 }
-            })
-            response.msg = 'Done'
+            }
+            response.msg = 'Everything is up to date.'
             response.ok = true
         } catch(error) {
             response.msg = error
@@ -114,7 +115,8 @@ app.get('/refresh', async(req, res) => {
     res.send(response)
 })
 
-app.get('/filelist', (req, res) => {
+
+const getFileList = (req, res) => {
     const path = req.query.sub ? `${__dirname}/public/${req.query.sub}` : `${__dirname}/public`
     let response = {}
     let data = {}
@@ -133,7 +135,8 @@ app.get('/filelist', (req, res) => {
         }
     }
     res.send(response)
-})
+}
+app.get('/filelist', getFileList)
 
 app.get('/version', async(req, res) => {
     let version = ''
@@ -147,7 +150,7 @@ app.get('/version', async(req, res) => {
         }
     } catch(error) {
         response = {
-            ok: true,
+            ok: false,
             msg: error,
             data: ''
         }
